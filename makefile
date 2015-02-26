@@ -1,0 +1,1 @@
+all: ; gcc string_finder.c string_finder
