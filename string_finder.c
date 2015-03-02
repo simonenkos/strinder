@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define DATA_CHUNK_SIZE 1024
+#define DATA_CHUNK_SIZE 4096
 
 /**
  * Function tries to find an existence of substring into some string
@@ -50,7 +50,8 @@ int kmp(const char * hstr, int hsize, const char * nstr, int nsize)
 }
 
 /**
- * Function reads data from file and search substring
+ * Function reads a data chunk from a file and search a substring into
+ * that data chunk using kmp function.
  */
 int file_kmp_search(FILE * file, const char * str, int size)
 {
@@ -70,7 +71,9 @@ int file_kmp_search(FILE * file, const char * str, int size)
       {
          return 1;
       }
-      fseek(file, -size, SEEK_CUR);
+      // Go back by a size of the substring to be sure about
+      // border conditions.
+      if (!feof(file)) fseek(file, -size, SEEK_CUR);
    }
    return 0;
 }
