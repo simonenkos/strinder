@@ -2,14 +2,19 @@
 #include <stdio.h>
 #include <string.h>
 
+#define DATA_CHUNK_SIZE 1024
+
+/**
+ * Function tries to find an existence of substring into some string
+ * using Knuth–Morris–Pratt string searching algorithm.
+ */
 int kmp(const char * hstr, int hsize, const char * nstr, int nsize)
 {
    int * prefix = (int *) calloc(nsize, sizeof(int));
    int q = 1, k = -1, i = 0, j = -1;
    int result = 0;
 
-   // Calculate prefix.
-   // ToDo: Add description
+   prefix[0] = k;
 
    while (q < nsize)
    {
@@ -22,14 +27,10 @@ int kmp(const char * hstr, int hsize, const char * nstr, int nsize)
       prefix[q++] = k;
    }
 
-   // Find substring using Knuth–Morris–Pratt string searching algorithm.
-
    while (i < hsize)
    {
-      if ((j > -1) && (nstr[j + 1] != hstr[i]))
+      while ((j > -1) && (nstr[j + 1] != hstr[i]))
          j = prefix[j];
-
-      printf("%c -> %c \n", nstr[j + 1], hstr[i]);
 
       if (nstr[j + 1] == hstr[i])
          j++;
@@ -43,11 +44,35 @@ int kmp(const char * hstr, int hsize, const char * nstr, int nsize)
       i++;
    }
 
-   printf("%d %d %d %d %d %d\n", hsize, nsize, q, k, j, i);
-
    free((void *) prefix);
 
    return result;
+}
+
+/**
+ * Function reads data from file and search substring
+ */
+int file_kmp_search(FILE * file, const char * str, int size)
+{
+   char data_chunk [DATA_CHUNK_SIZE];
+
+   while (!feof(file))
+   {
+      if (fread(data_chunk, sizeof(char), DATA_CHUNK_SIZE, file) < 0)
+      {
+         if (!feof(file))
+         {
+            printf("Can't read data chunk from file!\n");
+         }
+         return -1;
+      }
+      if (kmp(data_chunk, DATA_CHUNK_SIZE, str, size) > 0)
+      {
+         return 1;
+      }
+      fseek(file, -size, SEEK_CUR);
+   }
+   return 0;
 }
 
 int main(int argc, char ** argv)
@@ -56,7 +81,7 @@ int main(int argc, char ** argv)
 
    if (argc <= 1)
    {
-      printf("No file was selected!");
+      printf("No file was selected!\n");
       return -1;
    }
 
@@ -64,42 +89,28 @@ int main(int argc, char ** argv)
 
    if (!file)
    {
-      printf("Can't open file %s!", argv[1]);
+      printf("Can't open file %s!\n", argv[1]);
       return -1;
    }
 
    while (1)
    {
-      char * nstr = NULL;
-      size_t nlen = 0;
+      int result = 0;
+      char * str = NULL;
+      size_t len = 0;
 
-      printf("\n> ");
+      if (getline(&str, &len, stdin) <= 0) continue;
+      if (strncmp(str, "exit", strlen(str) - 1) == 0) break;
 
-      if (getline(&nstr, &nlen, stdin) <= 0) continue;
-      if (strncmp(nstr, "exit", 4) == 0) break;
+      if ((result = file_kmp_search(file, str, strlen(str) - 1)) > 0)
+         printf("YES\n");
+      else if (result == 0)
+         printf("NO\n");
+      else
+         break;
 
-      while (!feof(file))
-      {
-         char * hstr = NULL;
-         size_t hlen = 0;
-
-         if (getline(&hstr, &hlen, file) < 0)
-         {
-            printf("Can't read line from file %s!", argv[1]);
-            return -1;
-         }
-         else if (!hlen) continue;
-
-         printf("%s : ", hstr);
-
-         if (kmp(hstr, strlen(hstr), nstr, strlen(nstr) - 1))
-            printf("YES\n");
-         else
-            printf("NO\n");
-      }
       rewind(file);
    }
-
 
    fclose(file);
 
